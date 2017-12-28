@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>crud.html</title>
+	
+    <meta http-equiv="keywords" content="keyword1,keyword2,keyword3">
+    <meta http-equiv="description" content="this is my page">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="themes/default/easyui.css">
+	<link rel="stylesheet" type="text/css" href="themes/icon.css">
+	<style type="text/css">
+		body{
+			font-size:14px;
+		}
+	</style>
+	<script type="text/javascript" src="jquery.min.js"></script>
+	<script type="text/javascript" src="jquery.easyui.min.js"></script>
+    <!--<link rel="stylesheet" type="text/css" href="./styles.css">-->
+    <script type="text/javascript">
+    	/*
+    		选中日期后放入文本框的格式
+    	*/
+    	$.fn.datebox.defaults.formatter=function(date){
+    		var y=date.getFullYear();
+    		var m=date.getMonth()+1;
+    		var d=date.getDate();
+    		return y+"-"+m+"-"+d;
+    		
+    	}
+    
+    	
+    	$.extend($.fn.validatebox.defaults.rules, {    
+		    isnum: {    
+		        validator: function(value,param){    
+		        	if(isNaN(value)){
+		        		return false;
+		        	}
+		        	return true;
+		        },    
+		        message: '您输入的值{value}必须是一个数字'   
+		    }    
+		});  
+    
+    
+    
+    	function sexFormatter(value,row,index){
+    		if(value==1){
+    			return '男';
+    		}else{
+    			return '女';
+    		}
+    	}
+    	
+    	/*
+    		查询方法
+    	*/
+    	function queryForm(){
+    		var stuName=$("#stuNameId").textbox('getValue');
+    		//ajax=queryStudent?sname=stuName 的值
+    		//EasyUi所有的方法的调用
+    		//控件对象.控件名称('方法名','方法参数')
+    		$('#dg').datagrid('load',{
+				sname: stuName
+			});
+    	}
+    	
+    	/*
+    		修改方法
+    	*/
+    	function submitUpdateForm(){
+            var selectedRow=$("#dg").datagrid("getSelected");
+        	$('#ff').form('submit', {
+				url:'student/'+selectedRow.sid,
+				success: function(msg){
+				    msg=JSON.parse(msg);
+					if(msg.code==1){
+	                   $.messager.alert('提示消息','修改成功');  
+	                   queryForm();
+	                   $("#w").window('close');
+	                }else{
+	                  $.messager.alert('错误消息',msg.message);
+	                }
+				}
+			});
+        	
+        }
+        
+        /*
+        	增加方法
+        */
+        function submitaddForm(){
+  			$('#tj').form('submit', {
+				url:'student',
+				success: function(msg){
+					msg=JSON.parse(msg);
+					if(msg.code==1){
+						$.messager.alert('提示消息','添加成功');    
+						queryForm();
+						$("#ww").window('close');
+						$("#ww").form("clear");
+					}else{
+						$.messager.alert('错误消息',msg.message);
+					}
+				}
+			});
+  		}
+    	$(function(){
+           //设置data-options
+	           $("#dg").datagrid({
+	               rownumbers:true,
+	               toolbar:[
+	               {
+				      iconCls: 'icon-insert',
+				      text:'新增',
+				     onClick:function(){
+						$("#ww").window('open');
+							
+					}
+			      
+				},{
+				  iconCls: 'icon-edit',
+				  text:'修改',
+				  onClick:function(){
+				      var selectedRow=$("#dg").datagrid("getSelected");
+			          if(selectedRow==null){
+			            $.messager.alert('提示消息','请选择一行数据');
+			            return;
+			          }
+			          $("#w").window('open');
+			          $('#ff').form('load',selectedRow);
+			          
+			          
+			      }
+				  
+				  
+				},{
+					iconCls: 'icon-remove',
+					text:'删除',
+					onClick:function(){
+						//获取当前选择中的行
+						var selectedRow=$("#dg").datagrid("getSelections");
+						if(selectedRow==null){
+							$.messager.alert('提示消息','请选择数据'); 
+								return;
+						}
+						var temp = "";
+						$.each(selectedRow,function(key,value){
+							temp=temp+value.sid+",";
+						})
+						
+						$.ajax({
+							url:'student/'+temp,
+							method:'POST',
+							dataType:'json',
+							data:'_method=delete',
+							success:function(msg){
+								$.messager.confirm('确认对话框', '是否删除数据', function(r){
+								if(r){
+									if (msg.code==1){
+									    $.messager.alert('提示消息','删除成功'); 
+									    queryForm(); 
+									}else{
+										$.messager.alert('错误消息',msg.message);
+									}
+								}else{
+									$.messager.alert('提示消息','取消操作'); 
+								}
+									
+								});
+							}
+						})
+					
+					}
+				}
+			  ]
+           
+           })
+    	})
+    	
+    	
+    </script>
+
+  </head>
+  
+  <body>
+  	学生姓名：<input id="stuNameId" class="easyui-textbox" type="text" name="stuName" data-options="required:true"></input>
+  	<a href="javascript:void(0)" class="easyui-linkbutton" style="width:50px" onclick="queryForm()">查询</a>
+  	<div style="height:5px"></div>
+  
+    <table id="dg" class="easyui-datagrid" title="学生信息" style="width:700px;height:250px"
+			data-options="singleSelect:false,collapsible:false,url:'queryStudent',method:'get',pagination:true">
+		<thead>
+			<tr>
+				<!-- {"sid":1,"sname":"张三2号","gid":1,"sex":1,"age":12,"address":"深圳福田"} -->
+				<th data-options="field:'sid',width:80">学生编号</th>
+				<th data-options="field:'sname',width:100">学生姓名</th>
+				<th data-options="field:'sex',width:80,align:'right',formatter:sexFormatter">性别</th>
+				<th data-options="field:'age',width:80,align:'right'">年龄</th>
+				<th data-options="field:'address',width:250">地址</th>
+			</tr>
+		</thead>
+	</table>
+	
+	
+	<div id="w" class="easyui-window" title="修改学生信息" data-options="iconCls:'icon-edit',closed:true" style="width:340px;height:300px;padding:5px;">
+		<div class="easyui-layout" data-options="fit:true">
+			<form id="ff" method="post">
+			<input type="hidden" name="_method" value="put">
+	    	<table cellpadding="5">
+	    		<tr>
+	    			<td>学生姓名:</td>
+	    			<td><input class="easyui-textbox" type="text" name="sname" data-options="required:true"></input></td>
+	    		</tr>
+	    		<tr>
+	    			<td>性别:</td>
+	    			<td>
+	    				<select class="easyui-combobox" name="sex" style="width:173px">
+	    				<option value="1">男</option>
+	    				<option value="0">女</option>
+	    				</select>
+	    			</td>
+	    		</tr>
+	    		<tr>
+	    			<td>年龄:</td>
+	    			<td><input class="easyui-textbox" type="text" name="age" data-options="required:true"></input></td>
+	    		</tr>
+	    		<tr>
+	    			<td>地址:</td>
+	    			<td><input class="easyui-textbox" name="address" data-options="multiline:true" style="height:60px"></input></td>
+	    		</tr>
+	    		
+	    	</table>
+	    	
+	    </form>
+	    <div style="text-align:center;padding:5px">
+	    	<a href="javascript:void(0)" class="easyui-linkbutton" onclick="submitUpdateForm()">保存</a>
+	    	<a href="javascript:void(0)" class="easyui-linkbutton" onclick="clearForm()">重置</a>
+	    </div>
+		</div>
+	</div>
+	
+	<div id="ww" class="easyui-window" title="添加学生信息" data-options="iconCls:'icon-insert',closed:true" style="width:320px;height:400px;padding:5px;">
+		<div class="easyui-layout" data-options="fit:true">
+			<form id="tj" method="post" enctype="multipart/form-data">
+			<input  type="hidden" name="gid" value="1"/>
+	    	<table cellpadding="5">
+	    		<tr>
+	    			<td>学生姓名:</td>
+	    			<td><input class="easyui-textbox" type="text" name="sname" data-options="required:true,missingMessage:'请输入用户名'"></input></td>
+	    		</tr>
+	    		<tr>
+	    			<td>出生日期:</td>
+	    			<td><input class="easyui-datebox" type="text" name="bornDate" data-options="required:true,editable:false"></input></td>
+	    		</tr>
+	    		<tr>
+	    			<td>手机号码:</td>
+	    			<td><input class="easyui-textbox" type="text" name="phone" data-options="required:true, invalidMessage:'电话号码必须是11位数',validType:['isnum','length[11,11]']" ></input></td>
+	    		</tr>
+	    		<tr>
+	    			<td>年龄:</td>
+	    			<td><input class="easyui-textbox" type="text" name="age" data-options="required:true"></input></td>
+	    		</tr>
+	    		<tr>
+	    			<td>性别:</td>
+	    			<td>
+	    				<select class="easyui-combobox" name="sex" style="width: 50px">
+	    				<option value="1">男</option>
+	    				<option value="0">女</option>
+	    				</select>
+	    			</td>
+	    		</tr>
+	    		<tr>
+	    			<td>地址:</td>
+	    			<td><input class="easyui-textbox" name="address" data-options="multiline:true" style="height:60px"></input></td>
+	    		</tr>
+	    		<tr>
+	    			<td>形象照:</td>
+	    			<td><input class="easyui-filebox" name="myImage" data-options="prompt:'请选择的的图片文件...'" style="width:100%"></input></td>
+	    		</tr>
+	    	</table>
+	    </form>
+	     <div style="text-align:center;padding:5px">
+	    	<a href="javascript:void(0)" class="easyui-linkbutton" onclick="submitaddForm()">添加</a>
+	    	<a href="javascript:void(0)" class="easyui-linkbutton" onclick="clearForm()">重置</a>
+	    </div>
+		</div>
+	</div>
+	
+  </body>
+</html>
